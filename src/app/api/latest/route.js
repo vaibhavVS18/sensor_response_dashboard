@@ -1,6 +1,5 @@
-import { getLatest } from "@/lib/state.js";
+import { latest } from "@/lib/state.js";
 
 export async function GET() {
-  const data = getLatest();
-  return Response.json(data || { message: "no data yet" });
+  return Response.json(latest || { message: "no data yet" });
 }
