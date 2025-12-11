@@ -3,16 +3,19 @@ let history = [];
 
 export function setLatest(entry) {
   latest = entry;
-  history.unshift(entry);     // add to start (newest first)
 
-  // limit history to last 100 logs (optional)
-  if (history.length > 100) history.pop();
+  history.unshift(entry);
+
+  // Keep only last 100 entries
+  if (history.length > 100) {
+    history.length = 100; // faster than pop()
+  }
 }
 
 export function getLatest() {
-  return latest;
+  return latest ? { ...latest } : null; // avoid external mutation
 }
 
 export function getHistory() {
-  return history;
+  return [...history]; // return a shallow copy
 }
