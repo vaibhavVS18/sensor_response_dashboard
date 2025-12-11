@@ -1,65 +1,66 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useState, useEffect } from "react";
+
+export default function Dashboard() {
+  const [data, setData] = useState(null);
+
+  async function loadData() {
+    const res = await fetch("/api/latest");
+    const json = await res.json();
+    setData(json);
+  }
+
+  useEffect(() => {
+    loadData();
+    const i = setInterval(loadData, 3000);
+    return () => clearInterval(i);
+  }, []);
+
+  if (!data || data.message === "no data yet") {
+    return (
+      <div style={{ padding: 40, fontSize: 22 }}>
+        No sensor data yet.  
+        <br />
+        Send POST → <code>/api/predict</code>
+      </div>
+    );
+  }
+
+  const isDanger = data?.prediction?.danger;
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.js file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div style={{ padding: 40, fontFamily: "sans-serif" }}>
+      <h1 style={{ fontSize: 32, marginBottom: 20 }}>Sensor Dashboard</h1>
+
+      <div
+        style={{
+          padding: 20,
+          borderRadius: 12,
+          background: "#0F172A",
+          color: "white",
+          maxWidth: 400
+        }}
+      >
+        <h3>Sensor Value</h3>
+        <div style={{ fontSize: 36, fontWeight: "bold" }}>{data.sensor}</div>
+        <p>{new Date(data.timestamp).toLocaleString()}</p>
+
+        <h3>Status</h3>
+        <div
+          style={{
+            padding: 15,
+            borderRadius: 10,
+            background: isDanger ? "#7F1D1D" : "#14532D",
+            marginBottom: 10
+          }}
+        >
+          {isDanger ? "⚠️ DANGER" : "✅ SAFE"}
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+
+        <p>{data.prediction.reason}</p>
+        <p>Confidence: {(data.prediction.score * 100).toFixed(0)}%</p>
+      </div>
     </div>
   );
 }
