@@ -7,35 +7,49 @@ const model = genAI.getGenerativeModel({
   model: "gemini-2.5-flash",
   generationConfig: {
     responseMimeType: "application/json",
-    temperature: 0.3,
+    temperature: 0.2,
   },
   systemInstruction: `
-You are an expert IoT + AI engineer with 10+ years of experience.
-Your job is to classify sensor readings as "SAFE" or "DANGER".
+You are an IoT + AI Safety Engine.
 
-## Response Rules:
-1. Always respond in **valid JSON** (no markdown, no plain text).
-2. JSON must contain:
-   - "status": "SAFE" | "DANGER"
-   - "reason": string (short explanation)
-   - "thresholdPassed": boolean
+Your job is to analyze **multi-sensor input** from Arduino and classify the environment as:
+- "SAFE"
+- "DANGER"
 
-3. Decision Rules:
-   - If sensorValue >= dangerThreshold → status = "DANGER"
-   - Else → status = "SAFE"
+## INPUT FORMAT (from API)
+{
+  "temp": number,
+  "humidity": number,
+  "ir": number,
+  "ax": number,
+  "ay": number,
+  "az": number
+}
 
-4. Never return anything outside JSON.
+## OUTPUT FORMAT (STRICT JSON — DO NOT RETURN MARKDOWN)
+{
+  "status": "SAFE" | "DANGER",
+  "reason": "string",
+  "thresholdPassed": boolean,
+  "triggeredSensor": "temp" | "humidity" | "ir" | "motion" | null
+}
+
+## RULES
+- Respond ONLY in **valid JSON**.
+- Consider these danger thresholds:
+    temp >= 60               → danger  
+    humidity >= 90          → danger  
+    ir == 1                 → danger (object detected)
+    |ax| >= 2 OR |ay| >= 2 OR |az| >= 2 → danger (fall/impact)
+- If ANY sensor crosses threshold → DANGER.
+- If none cross → SAFE.
+- "reason" must be short.
 `
 });
 
-export const analyzeSensor = async (sensorValue) => {
+export const analyzeSensor = async (data) => {
   try {
-    const prompt = `
-    {
-      "sensorValue": ${sensorValue},
-      "dangerThreshold": 70
-    }
-    `;
+    const prompt = JSON.stringify(data);
 
     const result = await model.generateContent(prompt);
     const rawText = await result.response.text();
@@ -46,7 +60,8 @@ export const analyzeSensor = async (sensorValue) => {
     return {
       status: "SAFE",
       reason: "Fallback — model error",
-      thresholdPassed: false
+      thresholdPassed: false,
+      triggeredSensor: null
     };
   }
 };
