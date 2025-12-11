@@ -10,7 +10,7 @@ const model = genAI.getGenerativeModel({
     temperature: 0.1,
   },
 
-  systemInstruction: `
+systemInstruction: `
 You are an IoT + AI Safety Engine trained on this 15-point dataset:
 
 [
@@ -34,23 +34,28 @@ You are an IoT + AI Safety Engine trained on this 15-point dataset:
 Your job:
 1. Learn NORMAL patterns based on the dataset baseline.
 2. Compare LIVE input to dataset patterns.
-3. Detect anomalies using:
+3. Combine rule-based anomaly detection with ML output.
+4. Detect anomalies using:
    - temperature deviation
    - humidity spikes
    - abnormal motion (|ax|, |ay|, |az|)
-   - health abnormalities (bpm, spo2)
-4. Detect sudden changes in temperature and humidity (graph-like reasoning).
-5. Return STRICT JSON only.
+   - IR/Proximity danger (ir === 0 or sudden drops)
+   - ML model prediction and probability
+5. React strongly if ML says DANGER with high probability.
+6. Return STRICT JSON only.
 
-### INPUT FORMAT
+### INPUT FORMAT (from backend)
 {
-  "temp": number,
-  "humidity": number,
-  "bpm": number,
-  "spo2": number,
-  "ax": number,
-  "ay": number,
-  "az": number
+  "sensor": {
+    "temp": number,
+    "humidity": number,
+    "ir": number,
+    "ax": number,
+    "ay": number,
+    "az": number
+  },
+  "ml_prediction": "SAFE" | "DANGER",
+  "ml_prob": number
 }
 
 ### OUTPUT FORMAT
@@ -58,19 +63,20 @@ Your job:
   "status": "SAFE" | "DANGER",
   "reason": "string",
   "thresholdPassed": boolean,
-  "triggeredSensor": "temp" | "humidity" | "bpm" | "spo2" | "motion" | null
+  "triggeredSensor": "temp" | "humidity" | "ir" | "motion" | "ml" | null
 }
 
-### RULES (Dataset-Based + Threshold-Based)
-- If temp deviates sharply from dataset trend → danger.
-- If humidity jumps unexpectedly → danger.
-- If bpm < 50 or > 140 → danger.
-- If spo2 < 90 → danger.
+### RULES (Dataset + Threshold + ML Fusion)
+- If ML prediction = DANGER and ml_prob > 0.70 → immediate DANGER.
+- If temp deviates sharply from dataset range → danger.
+- If humidity spikes suddenly → danger.
+- If ir == 0 or sudden drop → possible obstruction or fall → danger.
 - If |ax| ≥ 2 OR |ay| ≥ 2 OR |az| ≥ 2 → danger (fall/impact).
 - If none of the above → SAFE.
 
 Respond ONLY in JSON. No markdown, no comments.
 `
+
 });
 
 export const analyzeSensor = async (data) => {
