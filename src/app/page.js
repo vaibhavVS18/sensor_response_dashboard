@@ -47,15 +47,13 @@ export default function RakshakDashboard() {
   }
 
   const prediction = current.prediction;
-  const statusColor =
-    prediction.status === "DANGER"
-      ? "bg-red-900/40 text-red-300"
-      : "bg-green-900/40 text-green-300";
+
+  const isDanger = prediction.status === "DANGER";
 
   return (
     <div className="min-h-screen bg-slate-950 text-white p-6 md:p-10">
 
-      {/* LOGO + HEADER */}
+      {/* HEADER */}
       <div className="text-center mb-10">
         <Image
           src="/logo.png"
@@ -65,23 +63,22 @@ export default function RakshakDashboard() {
           className="mx-auto mb-4"
         />
         <h1 className="text-4xl md:text-5xl font-bold">Rakshak – Smart Safety Vest</h1>
-        <p className="text-slate-400 mt-2 text-lg">
-          Real-Time Multi-Sensor Monitoring System
-        </p>
+        <p className="text-slate-400 mt-2 text-lg">Real-Time Multi-Sensor Monitoring System</p>
       </div>
 
-      {/* CURRENT STATUS CARD */}
+      {/* STATUS CARD */}
       <div
-        className={`rounded-2xl p-6 md:p-8 shadow-xl border border-slate-800 ${statusColor}`}
+        className={`rounded-2xl p-8 shadow-xl border border-slate-800 transition-all ${
+          isDanger
+            ? "bg-red-900/40 text-red-300 animate-pulse shadow-red-900/40"
+            : "bg-green-900/30 text-green-300 shadow-green-900/20"
+        }`}
       >
-        <h2 className="text-3xl font-bold">
-          Status:{" "}
-          {prediction.status === "DANGER"
-            ? "⚠️ Critical Condition"
-            : "✅ Safe Condition"}
+        <h2 className="text-3xl font-bold flex items-center gap-3">
+          {isDanger ? "⚠️ Danger Detected" : "✅ Safe Condition"}
         </h2>
 
-        <p className="mt-2 text-slate-200 text-lg">{prediction.reason}</p>
+        <p className="mt-2 text-lg">{prediction.reason}</p>
 
         {prediction.triggeredSensor && (
           <p className="mt-2 text-red-300">
@@ -89,22 +86,23 @@ export default function RakshakDashboard() {
           </p>
         )}
 
-        <p className="mt-2 text-slate-300">
+        <p className="mt-3 text-slate-300">
           Updated At: {new Date(current.timestamp).toLocaleString()}
         </p>
       </div>
 
-      {/* CURRENT SENSOR GRID */}
+      {/* SENSOR GRID */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-10">
         <VitalCard title="Temperature" value={`${current.sensor.temp} °C`} />
         <VitalCard title="Humidity" value={`${current.sensor.humidity} %`} />
-        <VitalCard title="IR Sensor" value={current.sensor.ir === 1 ? "Object Detected" : "Clear"} />
+        <VitalCard title="Heart Rate" value={`${current.sensor.bpm} BPM`} />
+        <VitalCard title="Blood Oxygen" value={`${current.sensor.spo2} %`} />
         <VitalCard title="Accel X" value={current.sensor.ax} />
         <VitalCard title="Accel Y" value={current.sensor.ay} />
         <VitalCard title="Accel Z" value={current.sensor.az} />
       </div>
 
-      {/* HISTORY TABLE */}
+      {/* HISTORY */}
       <div className="mt-14 bg-slate-900 p-6 rounded-2xl border border-slate-800 overflow-x-auto">
         <h3 className="text-2xl font-bold mb-4 text-slate-300">
           📜 Sensor Data History (Live)
@@ -116,7 +114,8 @@ export default function RakshakDashboard() {
               <th className="p-2">Time</th>
               <th className="p-2">Temp</th>
               <th className="p-2">Humidity</th>
-              <th className="p-2">IR</th>
+              <th className="p-2">BPM</th>
+              <th className="p-2">SpO2</th>
               <th className="p-2">AX</th>
               <th className="p-2">AY</th>
               <th className="p-2">AZ</th>
@@ -130,7 +129,8 @@ export default function RakshakDashboard() {
                 <td className="p-2">{new Date(log.timestamp).toLocaleTimeString()}</td>
                 <td className="p-2">{log.sensor.temp}</td>
                 <td className="p-2">{log.sensor.humidity}</td>
-                <td className="p-2">{log.sensor.ir}</td>
+                <td className="p-2">{log.sensor.bpm}</td>
+                <td className="p-2">{log.sensor.spo2}</td>
                 <td className="p-2">{log.sensor.ax}</td>
                 <td className="p-2">{log.sensor.ay}</td>
                 <td className="p-2">{log.sensor.az}</td>

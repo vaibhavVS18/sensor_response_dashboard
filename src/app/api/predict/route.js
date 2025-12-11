@@ -5,7 +5,7 @@ export async function POST(req) {
   try {
     const sensor = await req.json();
 
-    const required = ["temp", "humidity", "ir", "ax", "ay", "az"];
+    const required = ["temp", "humidity", "bpm", "spo2", "ax", "ay", "az"];
     for (const key of required) {
       if (sensor[key] === undefined) {
         return Response.json(
