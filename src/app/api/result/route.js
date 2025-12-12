@@ -1,4 +1,4 @@
-import { setLatest } from "@/lib/state.js";
+import { analyzeSensor } from "@/lib/ai.js";
 
 export async function POST(req) {
   try {
@@ -23,15 +23,9 @@ export async function POST(req) {
       az: Number(sensor.az)
     };
 
-    const entry = {
-      sensor: normalized,
-      timestamp: new Date().toISOString(),
-      prediction: null
-    };
+    const prediction = await analyzeSensor(normalized);
 
-    setLatest(entry);
-
-    return Response.json({ message: "Sensor stored", entry });
+    return Response.json({ sensor: normalized, prediction });
   } catch (err) {
     return Response.json({ error: err.message }, { status: 500 });
   }

@@ -5,7 +5,10 @@ import Image from "next/image";
 export default function RakshakDashboard() {
   const [current, setCurrent] = useState(null);
   const [history, setHistory] = useState([]);
+  const [manualPrediction, setManualPrediction] = useState(null);
+  const [loadingPrediction, setLoadingPrediction] = useState(false);
 
+  // Load latest + history every 3 seconds
   useEffect(() => {
     const load = async () => {
       const res1 = await fetch("/api/latest");
@@ -22,6 +25,7 @@ export default function RakshakDashboard() {
     return () => clearInterval(id);
   }, []);
 
+  // If no data yet
   if (!current || current.message === "no data yet") {
     return (
       <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center">
@@ -46,16 +50,25 @@ export default function RakshakDashboard() {
     );
   }
 
-  const prediction = current.prediction;
-  const statusColor =
-    prediction.status === "DANGER"
-      ? "bg-red-900/40 text-red-300"
-      : "bg-green-900/40 text-green-300";
+  // Manual prediction handler
+  const runPrediction = async () => {
+    setLoadingPrediction(true);
+    setManualPrediction(null);
+
+    const res = await fetch("/api/result", {
+      method: "POST",
+      body: JSON.stringify(current.sensor),
+    });
+
+    const data = await res.json();
+    setManualPrediction(data.prediction);
+    setLoadingPrediction(false);
+  };
 
   return (
     <div className="min-h-screen bg-slate-950 text-white p-6 md:p-10">
 
-      {/* LOGO + HEADER */}
+      {/* HEADER */}
       <div className="text-center mb-10">
         <Image
           src="/logo.png"
@@ -70,32 +83,8 @@ export default function RakshakDashboard() {
         </p>
       </div>
 
-      {/* CURRENT STATUS CARD */}
-      <div
-        className={`rounded-2xl p-6 md:p-8 shadow-xl border border-slate-800 ${statusColor}`}
-      >
-        <h2 className="text-3xl font-bold">
-          Status:{" "}
-          {prediction.status === "DANGER"
-            ? "⚠️ Critical Condition"
-            : "✅ Safe Condition"}
-        </h2>
-
-        <p className="mt-2 text-slate-200 text-lg">{prediction.reason}</p>
-
-        {prediction.triggeredSensor && (
-          <p className="mt-2 text-red-300">
-            Triggered Sensor: <b>{prediction.triggeredSensor}</b>
-          </p>
-        )}
-
-        <p className="mt-2 text-slate-300">
-          Updated At: {new Date(current.timestamp).toLocaleString()}
-        </p>
-      </div>
-
       {/* CURRENT SENSOR GRID */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-10">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         <VitalCard title="Temperature" value={`${current.sensor.temp} °C`} />
         <VitalCard title="Humidity" value={`${current.sensor.humidity} %`} />
         <VitalCard title="IR Sensor" value={current.sensor.ir === 1 ? "Object Detected" : "Clear"} />
@@ -103,6 +92,44 @@ export default function RakshakDashboard() {
         <VitalCard title="Accel Y" value={current.sensor.ay} />
         <VitalCard title="Accel Z" value={current.sensor.az} />
       </div>
+
+      {/* RUN PREDICTION BUTTON */}
+      <div className="mt-10 text-center">
+        <button
+          onClick={runPrediction}
+          className="bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-xl text-lg font-semibold shadow-lg"
+        >
+          {loadingPrediction ? "Analyzing..." : "Run AI Prediction"}
+        </button>
+      </div>
+
+      {/* MANUAL PREDICTION RESULT */}
+      {manualPrediction && (
+        <div className="mt-10 bg-slate-900 p-6 rounded-2xl border border-slate-800">
+          <h2 className="text-2xl font-bold mb-3">Prediction Result</h2>
+
+          <p className="text-lg">
+            Status:{" "}
+            <span
+              className={
+                manualPrediction.status === "DANGER"
+                  ? "text-red-400"
+                  : "text-green-400"
+              }
+            >
+              {manualPrediction.status}
+            </span>
+          </p>
+
+          <p className="text-slate-300 mt-1">{manualPrediction.reason}</p>
+
+          {manualPrediction.triggeredSensor && (
+            <p className="mt-2 text-red-300">
+              Triggered Sensor: <b>{manualPrediction.triggeredSensor}</b>
+            </p>
+          )}
+        </div>
+      )}
 
       {/* HISTORY TABLE */}
       <div className="mt-14 bg-slate-900 p-6 rounded-2xl border border-slate-800 overflow-x-auto">
@@ -115,12 +142,11 @@ export default function RakshakDashboard() {
             <tr className="border-b border-slate-700">
               <th className="p-2">Time</th>
               <th className="p-2">Temp</th>
-              <th className="p-2">Humidity</th>
+              <th className="p-2">Hum</th>
               <th className="p-2">IR</th>
               <th className="p-2">AX</th>
               <th className="p-2">AY</th>
               <th className="p-2">AZ</th>
-              <th className="p-2">Status</th>
             </tr>
           </thead>
 
@@ -134,15 +160,6 @@ export default function RakshakDashboard() {
                 <td className="p-2">{log.sensor.ax}</td>
                 <td className="p-2">{log.sensor.ay}</td>
                 <td className="p-2">{log.sensor.az}</td>
-                <td
-                  className={`p-2 font-bold ${
-                    log.prediction.status === "DANGER"
-                      ? "text-red-400"
-                      : "text-green-400"
-                  }`}
-                >
-                  {log.prediction.status}
-                </td>
               </tr>
             ))}
           </tbody>
